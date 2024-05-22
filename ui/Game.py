@@ -110,34 +110,7 @@ class Game(GuiController):
         pg.display.update()
         self.clock.tick(REFRASH)
         # time.sleep(1)
-
-    # def draw_tubes(self, tube_cols):
-    #     tube_boxes = []
-    
-    #     c_row = self.tubes_number//NTPR
-    #     height_tube = ((CONTAINER_HEIGHT*0.9)//c_row)*0.95
-    #     width_tube = ((CONTAINER_WIDTH*0.9)//NTPR)*0.4
-        
-        
-        
-    #     spacing = WIDTH / self.tubes_number
-    #     s = (spacing-65)//2
-    #     y = (HEIGHT - (50*self.size))/2 
-        
-    #     for i in range(self.tubes_number):
-    #         color = 'green' if self.select_box == i else 'white' 
-    #         for j in range(len(tube_cols[i])):
-    #             # ball_rect = Rect()
-    #             # tube_rect =Rect()
-    #             pass
-    #             # pg.draw.rect(self.screen, COLOR_CHOICES[tube_cols[i][j]], [s+spacing * i, y-50+self.size*50 - (50 * j), 65, 50],0,40 if j==0 else 0,0,0)
-    #         # box = pg.draw.rect(self.screen, color, [s+spacing * i, y, 65, 50*self.size], 1,40,0,0)
-    #         box = pg.draw.rect(self.screen, color, [s+spacing * i, y,  width_tube,height_tube], 1,40,0,0)
-            
-    #         tube_boxes.append(box)
-    
-    #     return tube_boxes
-    
+  
     def draw_tubes(self, tube_cols):
         tube_boxes = []
 
