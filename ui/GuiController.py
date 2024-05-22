@@ -13,6 +13,16 @@ class GuiController:
         self.music_on = True  
         self.difficulty_level = 0.5
         self.next_view = False
+        self.prev_view =False
+        
+        self.sounds:dict[str,str]={
+            "start":"data\sound\Kevin_MacLeod_-_Canon_in_D_Major(chosic.com)"
+            
+        }
+        self.sound_effect:dict[str,pg.mixer.Sound]={
+            "click":pg.mixer.Sound("data\sound\system-notification-199277.mp3"),
+            "win":pg.mixer.Sound("data\sound\system-notification-199277.mp3"),
+        }
        
 
     def shouldAdvance(self):

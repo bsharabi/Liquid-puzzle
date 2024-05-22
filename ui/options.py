@@ -12,15 +12,15 @@ class options(GuiController):
 
         
         self.music_button = Button(
-            Label("Music On" if self.music_on else "Music Off", self.font), 
             Rectangle((WIDTH // 2 - 50, HEIGHT// 2 - 50), (100, 32)),
-            palette["green"],
-            palette["light-green"],
-            palette["white"])
+            Label("Music On" if self.music_on else "Music Off", self.font), 
+            PALETTE["green"],
+            PALETTE["light-green"],
+            PALETTE["white"])
 
        
         self.seek_bar = SeekBar(Rectangle((WIDTH // 2 - 100, HEIGHT // 2),
-                                          (200, 20)), self.difficulty_level,palette["green"])
+                                          (200, 20)), self.difficulty_level,PALETTE["green"])
         
         
     def handleClick(self, event):
@@ -42,13 +42,13 @@ class options(GuiController):
         return Game(self.algo)
 
     def draw_screen(self):
-        self.screen.fill(palette["white"])
+        self.screen.fill(PALETTE["white"])
 
         # Draw music button
         self.music_button.draw_button(self.screen, True)
 
         # Draw seek bar
-        self.seek_bar.draw_seek_bar(self.screen)
+        self.seek_bar.draw_seekbar (self.screen)
 
         pg.display.update()
         self.clock.tick(REFRASH)

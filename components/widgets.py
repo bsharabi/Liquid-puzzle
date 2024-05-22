@@ -44,8 +44,8 @@ class Rectangle:
 
     '''Draws the rectangle on Surface'''
 
-    def draw_rect(self, surface: Surface, color: Color) -> None:
-        pg.draw.rect(surface, color, self.rect, border_radius=4)
+    def draw_rect(self, surface: Surface, color: Color,bool=True) -> None:
+        pg.draw.rect(surface, color, self.rect, (2 if bool else -1),0,0,0 )
 
 
 class RectLabel:
@@ -85,12 +85,14 @@ class Button:
 
     def draw_button(self, surface, center: bool = False):
         button_color = self.rect_color
+        bool =False
         if self.mouse_hover():
             button_color = self.hover_color
+            bool =True
         if self.active:
             button_color = (146, 181, 233)
         self.color_now = button_color
-        self.rect_button.draw_rect(surface, button_color)
+        self.rect_button.draw_rect(surface, button_color,bool)
         self.rect_button.rect.topleft = self.rect_button.position
         self.text_button.draw_label(
             surface, self.rect_button.rect.center, self.text_color, center)

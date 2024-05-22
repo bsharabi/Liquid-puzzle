@@ -10,35 +10,37 @@ class Menu(GuiController):
 
         super().__init__()    
         display.set_caption("Liquid Pazzle - Menu")
-       
-
+        self.image = pg.image.load('data\Images\menu_background.jpg')
+        self.image = pg.transform.scale(self.image, (WIDTH, HEIGHT))
+        
         self.startButton = Button(
-            Rectangle((200, 100), (100, 32)),
+            Rectangle(((WIDTH-150)//2,((HEIGHT-32)//2)), (150, 32)),
             Label("Start", self.font),
-            palette["green"],
-            palette["light-green"],
-            palette["white"])
+            PALETTE["green"],
+            PALETTE["light-green"],
+            PALETTE["white"])
         
 
         self.optionsButton = Button(
-            Rectangle((200, 150), (100, 32)),
+            Rectangle(((WIDTH-150)//2,((HEIGHT-32)//2)+50), (150, 32)),
             Label("Options", self.font),
-            palette["red"], 
-            palette["light-red"], 
-            palette["white"])
+            PALETTE["red"], 
+            PALETTE["light-red"], 
+            PALETTE["white"])
         
         self.quitButton = Button(
-            Rectangle((200, 200), (100, 32)),
+            Rectangle(((WIDTH-150)//2,((HEIGHT-32)//2)+100), (150, 32)),
             Label("Quit", self.font),
-            palette["purple"], 
-            palette["gray"], 
-            palette["white"])
+            PALETTE["purple"], 
+            PALETTE["gray"], 
+            PALETTE["white"])
         
         self.start = False
         self.options = False
         self.quit = False
 
     def handleClick(self,event):
+        
         if self.startButton.mouse_hover():
             self.start = True
         elif self.optionsButton.mouse_hover():
@@ -53,7 +55,10 @@ class Menu(GuiController):
         pass
 
     def shouldAdvance(self):   
-        return self.start or self.options or self.quit
+        if self.start or self.options or self.quit:
+            self.sound_effect["click"].play()
+            return True
+        return False
 
     def getNextViewController(self):
         if self.start:
@@ -66,7 +71,8 @@ class Menu(GuiController):
 
     def draw_screen(self):
 
-        self.screen.fill(palette["white"])
+        self.screen.fill(PALETTE["white"])
+        self.screen.blit(self.image,(0,0))
         self.startButton.draw_button(self.screen, True)
         self.optionsButton.draw_button(self.screen, True)
         self.quitButton.draw_button(self.screen, True)

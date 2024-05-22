@@ -9,6 +9,8 @@ class GUI_Panel:
         pg.init()
         pg.font.init()
         pg.mixer.init()
+        pg.mixer.music.load("data\sound\Kevin_MacLeod_-_Canon_in_D_Major(chosic.com).mp3")
+        # pg.mixer.music.play(-1)
         self.GuiController = Start()
     
     def __call__(self):
