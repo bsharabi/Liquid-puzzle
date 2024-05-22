@@ -1,32 +1,36 @@
+from logic.parser import Parser
 from api.lib import *
 from api.IAlgo import IAlgo
 from copy import *
 from .GuiController import *
 from components.widgets import *
-from logic.test2 import run
-import time
+
 
 class Game(GuiController):
   
     def __init__(self) -> None:
         super().__init__()
+        self .parser = Parser("example.csv","example.csv")
         display.set_caption("Liquid Pazzle - Game")
+        self.image = pg.image.load('data\Images\game_bakground.jpg')
+        self.image = pg.transform.scale(self.image, (WIDTH, HEIGHT))
         self.index_solve=0
         self.empty = 2
         self.full = 8
         self.size = 8
         self.colors = 8
         self.tubes_number=self.size+self.empty
-        self.tubes_color = self.algo.generate_tubes(self.full,self.size,self.colors,self.empty)
-        self.solve = run(self.tubes_color)
+        self.tubes_color,self.diff_color_per_tube =self.algo.generate_tubes(self.full,self.size,self.colors,self.empty)
+        self.solve,self.time_taken = self.algo(self.tubes_color)
+        self.resualt_dict = self.parser.init_dict(self.tubes_color,self.empty,self.full,self.size,self.colors,self.diff_color_per_tube,len(self.solve),self.solve,self.time_taken)
+        self.parser.writer(self.resualt_dict)
         self.deepcopy=deepcopy(self.tubes_color)
         self.select_box=0
         self.win=False
         self.index=0
         self.undo = [deepcopy(self.tubes_color)]
         self.selected = False
-      
-    
+       
     def handleClick(self,event):
       
         if not self.selected:
@@ -43,28 +47,29 @@ class Game(GuiController):
                     self.select_box = 100
         print(self.select_box)
         pass
-    
-    
-    
+     
     def handleButtonPress(self, event):
-        if self.win:
+
+        if self.win and event.key==13:
             print("Winn")
-            self.tubes_color = self.algo.generate_tubes(self.full,self.size,self.colors,self.empty)
-            self.solve = run(self.tubes_color)
+            self.tubes_color,self.diff_color_per_tube = self.algo.generate_tubes(self.full,self.size,self.colors,self.empty)
+            self.solve,self.time_taken = self.algo(self.tubes_color)
             self.index_solve=0
+            self.deepcopy=deepcopy(self.tubes_color)
+            self.resualt_dict = self.parser.init_dict(self.tubes_color,self.empty,self.full,self.size,self.colors,self.diff_color_per_tube,len(self.solve),self.solve,self.time_taken)
+            self.parser.writer(self.resualt_dict)
             self.win=False
-        if event.key == pg.K_SPACE and not self.win:
+        if event.key == 32 and not self.win:
             self.tubes_color=deepcopy(self.deepcopy)
             self.index_solve=0
-        if event.key == pg.K_BACKSPACE:
+        if event.key == 1073741904:
             print("Home")
             self.index = self.index-1 if self.index  >0 else 0
             self.tubes_color=deepcopy(self.undo[self.index])  
-        if event.key == pg.K_END:
+        if event.key == 1073741903:
             self.index = self.index+1 if len(self.undo)  < self.index+1 else self.index
             self.tubes_color=deepcopy(self.undo[self.index])     
         
-
     def handleWheel(self, event):
         pass
 
@@ -87,22 +92,23 @@ class Game(GuiController):
 
     def draw_screen(self):
 
-        self.screen.fill(palette["white"])
-        self.select_box = 100 if self.index_solve >= len(self.solve) else self.solve[self.index_solve][0]
+        self.screen.fill(PALETTE["white"])
+        self.screen.blit(self.image,(0,0))
+        # self.select_box = 100 if self.index_solve >= len(self.solve) else self.solve[self.index_solve][0]
         self.tube_rects =  self.draw_tubes(self.tubes_color)
 
         self.win = self.check_victory(self.tubes_color)
        
         if self.win:
-            victory_text = self.font.render('You Won! Press Enter for a new board!', True, 'black')
+            victory_text = self.font.render('You Won! Press Enter for a new board!', True, 'white')
             self.screen.blit(victory_text, (WIDTH//3, HEIGHT -50))
-        restart_text = self.font.render('Stuck? Space-Restart, Enter-New Board!', True, 'black')
+        restart_text = self.font.render('Stuck? Space-Restart, Enter-New Board!', True, 'white')
         self.screen.blit(restart_text, (10, 10))
         
         self.getNextSolve()
         pg.display.update()
         self.clock.tick(REFRASH)
-        time.sleep(0.1)
+        # time.sleep(1)
 
     def draw_tubes(self, tube_cols):
         tube_boxes = []
@@ -112,8 +118,8 @@ class Game(GuiController):
         y = (HEIGHT - (50*self.size))/2 
         for i in range(self.tubes_number):
             for j in range(len(tube_cols[i])):
-                pg.draw.rect(self.screen, color_choices[tube_cols[i][j]], [s+spacing * i, y-50+self.size*50 - (50 * j), 65, 50],0,40 if j==0 else 0,0,0)
-            box = pg.draw.rect(self.screen, 'black', [s+spacing * i, y, 65, 50*self.size], 1,40,0,0)
+                pg.draw.rect(self.screen, COLOR_CHOICES[tube_cols[i][j]], [s+spacing * i, y-50+self.size*50 - (50 * j), 65, 50],0,40 if j==0 else 0,0,0)
+            box = pg.draw.rect(self.screen, 'white', [s+spacing * i, y, 65, 50*self.size], 1,40,0,0)
             if self.select_box == i:
                 pg.draw.rect(self.screen, 'green', [s+spacing * i, y, 65, 50*self.size],1,40,0,0)
             tube_boxes.append(box)
