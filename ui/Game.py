@@ -1,130 +1,241 @@
-from logic.parser import Parser
 from api.lib import *
 from api.IAlgo import IAlgo
 from copy import *
 from .GuiController import *
 from components.widgets import *
-from math import ceil, sqrt
+
 
 
 class Game(GuiController):
   
     def __init__(self) -> None:
         super().__init__()
-        self .parser = Parser("example.csv","example.csv")
         display.set_caption("Liquid Pazzle - Game")
-        self.image = pg.image.load('data\Images\game_bakground.jpg')
-        self.image = pg.transform.scale(self.image, (WIDTH, HEIGHT))
-        self.index_solve=0
-        self.empty = 2
-        self.full = 8
-        self.size = 8
-        self.colors = 8
-        self.tubes_number=self.size+self.empty
-        self.tubes_color,self.diff_color_per_tube =self.algo.generate_tubes(self.full,self.size,self.colors,self.empty)
-        self.solve,self.time_taken = self.algo(self.tubes_color)
-        self.parser.writer( empty=self.empty, full=self.full, size=self.size, colors=self.colors,diffColor=self.diff_color_per_tube, num_step=len(self.solve),time=self.time_taken, init=self.tubes_color, steps=self.solve)
-        self.deepcopy=deepcopy(self.tubes_color)
-        self.select_box=0
-        self.win=False
-        self.index=0
-        self.undo = [deepcopy(self.tubes_color)]
-        self.selected = False
+        
+        self.image =self.build_image(r'data\Images\game_bakground.jpg',(WIDTH, HEIGHT))  
+        
+        self.algo.initialize(filePath= "output.csv")
+       
+        self.select_box:int=0
+        self.win:bool=False
+        self.selected:bool = False
+        self.steps:list[tuple[int]]=[]
+        
+        self.back_button = Button(
+            Rectangle(BACK_BUTTON_POS, (BUTTON_WIDTH, BUTTON_HEIGHT)),
+            Label("Back", self.font),
+            PALETTE["green"],
+            PALETTE["light-green"],
+            PALETTE["white"])
+        
+
+        self.auto_solve_Button = Button(
+            Rectangle(AUTO_BUTTON_POS, (BUTTON_WIDTH, BUTTON_HEIGHT)),
+            Label("Auto", self.font),
+            PALETTE["red"], 
+            PALETTE["light-red"], 
+            PALETTE["white"])
+        
+        self.next_step_Button = Button(
+            Rectangle(NEXT_BUTTON_POS, (BUTTON_WIDTH, BUTTON_HEIGHT)),
+            Label("Next", self.font),
+            PALETTE["purple"], 
+            PALETTE["gray"], 
+            PALETTE["white"])
+        
+        self.prev_step_Button = Button(
+            Rectangle(PREV_BUTTON_POS, (BUTTON_WIDTH, BUTTON_HEIGHT)),
+            Label("Prev", self.font),
+            PALETTE["purple"], 
+            PALETTE["gray"], 
+            PALETTE["white"])
+        
+        self.time_left = 60 
+        self.score=0
+        self.steps_number=0
+        self.score_lable=RectLabel(Rectangle(SCORE_POS,SCORE_SIZE),
+                Label("Score: 0", self.font),  
+                PALETTE["gray"], 
+                PALETTE["white"] )
+        self.step_lable=RectLabel(Rectangle(STEPS_POS,STEPS_SIZE),
+                Label("Step: ", self.font),  
+                PALETTE["gray"], 
+                PALETTE["white"] )
+        
+        self.auto_solve = False
+        self.is_change=False
+        
+    
        
     def handleClick(self,event):
-      
-        if not self.selected:
-            for item in range(len(self.tube_rects)):
-                if self.tube_rects[item].collidepoint(event.pos):
-                    self.selected = True
-                    self.select_box = item
+        
+        if self.auto_solve_Button.mouse_hover():
+            self.auto_solve = True
+        elif self.next_step_Button.mouse_hover():
+            self.getNextStep()
+        elif self.back_button.mouse_hover():
+            self.prev=True
+        elif self.prev_step_Button.mouse_hover() and not self.win:
+            self.getPrevStep()
         else:
-            for item in range(len(self.tube_rects)):
-                if self.tube_rects[item].collidepoint(event.pos):
-                    dest_rect = item
-                    self.tubes_color = self.calc_move(self.tubes_color, self.select_box, dest_rect)
-                    self.selected = False
-                    self.select_box = 100
-        print(self.select_box)
-        pass
-     
+            if not self.selected:
+                for item in range(len(self.tube_rects)):
+                    if self.tube_rects[item].collidepoint(event.pos):
+                        self.selected = True
+                        self.select_box = item
+            else:
+                for item in range(len(self.tube_rects)):
+                    if self.tube_rects[item].collidepoint(event.pos):
+                        dest_rect = item
+                        self.is_change,step =self.algo.calc_move( self.select_box, dest_rect)
+                        self.selected = False
+                        self.select_box = 100
+                        if self.is_change:
+                            self.steps_number+=1
+                            self.steps.append(step)
+                
+    
+    def __init_new_game(self):
+        self.steps.clear()
+        self.time_left=60
+        self.auto_solve=False
+        self.score+=1
+        self.steps_number=0
+        self.score_lable.label.text=f'Score: {self.score}'
+  
+                        
     def handleButtonPress(self, event):
-
         if self.win and event.key==13:
-            print("Winn")
-            self.tubes_color,self.diff_color_per_tube = self.algo.generate_tubes(self.full,self.size,self.colors,self.empty)
-            self.solve,self.time_taken = self.algo(self.tubes_color)
-            self.index_solve=0
-            self.deepcopy=deepcopy(self.tubes_color)
-            self.parser.writer( empty=self.empty, full=self.full, size=self.size, colors=self.colors,diffColor=self.diff_color_per_tube, num_step=len(self.solve),time=self.time_taken, init=self.tubes_color, steps=self.solve)
-
+            self.__init_new_game()
+            try:
+                self.algo.next_grid_df()
+            except Exception as e:
+                print(e)
+                self.algo.initialize(full=8,size=8,colors=8,empty=2)
             self.win=False
-        if event.key == 32 and not self.win:
-            self.tubes_color=deepcopy(self.deepcopy)
-            self.index_solve=0
-        if event.key == 1073741904:
-            print("Home")
-            self.index = self.index-1 if self.index  >0 else 0
-            self.tubes_color=deepcopy(self.undo[self.index])  
-        if event.key == 1073741903:
-            self.index = self.index+1 if len(self.undo)  < self.index+1 else self.index
-            self.tubes_color=deepcopy(self.undo[self.index])     
+        elif event.key == 1073741904:
+            self.getPrevStep()
+        elif event.key == 1073741903:
+            self.getNextStep()   
+        elif event.key == 32:
+           self.auto_solve = True
+
         
     def handleWheel(self, event):
         pass
 
-    def shouldAdvance(self):   
-        pass
+    def shouldAdvance(self):
+        return self.prev 
 
+    
     def getNextViewController(self):
+        return self.prev_view
+        
     
-        return Game(self.algo)
+    def getPrevViewController(self):
+        pass
     
-    def getNextSolve(self):
-        if(self.index_solve>=len(self.solve)):
-            return
-        v= self.solve[self.index_solve]
-        for i in range(int(v[2])):
-            item =self.tubes_color[int(v[0])].pop()
-            self.tubes_color[int(v[1])].append(item)
-        self.select_box = self.solve[self.index_solve][1]
-        self.index_solve+=1
+    def getNextStep(self):
+        if self.is_change:
+            self.algo.initialize(True)
+        if self.algo.hasNext():
+            step=(src,dest,amt)= self.algo.next()
+            src_stack:list[int] = self.algo.df["init"][src]
+            dest_stack:list[int] = self.algo.df["init"][dest]
+            for _ in range(amt):
+                src_item = src_stack.pop()
+                dest_stack.append( src_item)
+            self.steps.append(step)
+            self.steps_number+=1
+
+        self.is_change=False
+
+    def getPrevStep(self):
+        if len(self.steps) != 0:
+            step=(dest,src,amt)= self.steps.pop()
+            src_stack:list[int] = self.algo.df["init"][src]
+            dest_stack:list[int] = self.algo.df["init"][dest]
+            for _ in range(amt):
+                src_item = src_stack.pop()
+                dest_stack.append( src_item)
+            self.is_change=True
+            self.steps_number+=1
+
+    
+    def set_timer(self):
+        if self.time_left > 0 and not self.win:
+             self.time_left -= 1
+        pass     
 
     def draw_screen(self):
 
         self.screen.fill(PALETTE["white"])
         self.screen.blit(self.image,(0,0))
-        # self.select_box = 100 if self.index_solve >= len(self.solve) else self.solve[self.index_solve][0]
-        self.tube_rects =  self.draw_tubes(self.tubes_color)
+        self.tube_rects =  self.draw_tubes()
         pg.draw.rect(self.screen,"white",RECT_CONTAINER,2,10)
 
-        self.win = self.check_victory(self.tubes_color)
+        self.win = self.algo.check_victory()
        
         if self.win:
             victory_text = self.font.render('You Won! Press Enter for a new board!', True, 'white')
-            self.screen.blit(victory_text, (WIDTH//3, HEIGHT -50))
-        restart_text = self.font.render('Stuck? Space-Restart, Enter-New Board!', True, 'white')
-        self.screen.blit(restart_text, (10, 10))
+            self.screen.blit(victory_text, ((WIDTH-150)//3, HEIGHT*0.96))
         
-        # self.getNextSolve()
+        timer_text = self.font.render(f'Time {self.time_left}', True, "red" if self.time_left < 10 else "white")
+        text_rect = timer_text.get_rect(center=TIMER_POS)
+        
+        self.screen.blit(timer_text, text_rect)
+        self.score_lable.draw_rectLabel(self.screen,True,False)
+        self.step_lable.draw_rectLabel(self.screen,True,False,self.steps_number)
+        self.draw_Button()
+        if self.auto_solve:
+            self.getNextStep()
         pg.display.update()
         self.clock.tick(REFRASH)
-        # time.sleep(1)
-  
-    def draw_tubes(self, tube_cols):
-        tube_boxes = []
 
-        # Calculate the height and width of each test tube
-        c_row = (self.tubes_number + NTPR - 1) // NTPR  # Number of rows needed
+        
+    def calculate_ntpr(self,tubes_number):
+        if MIN_NTPR <= tubes_number <= MAX_NTPR:
+            NTPR = tubes_number
+        elif tubes_number > MAX_NTPR:
+            # Find the maximum NTPR that is less than or equal to MAX_NTPR and is a divisor of tubes_number
+            for i in range(MAX_NTPR, MIN_NTPR-1, -1):
+                if tubes_number % i == 0:
+                    NTPR = i
+                    break
+            else:
+                # If no exact divisor is found, fall back to max between MIN_NTPR and MAX_NTPR
+                NTPR = min(max(MIN_NTPR, tubes_number // ((tubes_number // MAX_NTPR) + 1)), MAX_NTPR)
+        else:
+            NTPR = MIN_NTPR
+    
+        return NTPR
+    
+    def draw_Button(self):
+        self.back_button.draw_button(self.screen,True)
+        self.auto_solve_Button.draw_button(self.screen,True)
+        self.next_step_Button.draw_button(self.screen,True)
+        self.prev_step_Button.draw_button(self.screen,True)
+         
+    def draw_tubes(self):
+        
+        tube_cols= self.algo.df["init"]
+        tube_boxes = []
+        full= self.algo.df["full"]
+        tubes_number=self.algo.df["tubesNumber"]
+        
+        NTPR =  self.calculate_ntpr(tubes_number)
+         
+        c_row = (tubes_number + NTPR - 1) // NTPR  # Number of rows needed
         height_tube = ((CONTAINER_HEIGHT * 0.9) / c_row) * 0.95
-        ball_size = height_tube//self.size
-        width_tube = ball_size*1.3
+        ball_size = (height_tube//full)*0.9
+        width_tube = ball_size*1.15
+        spacing = (height_tube//full)*0.08
         
         # Calculate the vertical and horizontal spacing
         vertical_spacing = (CONTAINER_HEIGHT - (height_tube * c_row)) / (c_row + 1)
         horizontal_spacing = (CONTAINER_WIDTH - (width_tube * NTPR)) / (NTPR + 1)
 
-        for i in range(self.tubes_number):
+        for i in range(tubes_number):
             row = i // NTPR
             col = i % NTPR
 
@@ -132,50 +243,16 @@ class Game(GuiController):
             y = CONTAINER_Y + vertical_spacing * (row + 1) + height_tube * row
 
             color = 'green' if self.select_box == i else 'white'
-            box = pg.draw.rect(self.screen, color, [x, y, width_tube, height_tube], 1, 40, 0, 0)
+            box = pg.draw.rect(self.screen, color, [x, y, width_tube, height_tube], 2, 100, 0, 0)
             tube_boxes.append(box)
 
             # Draw balls in the test tube
             for j in range(len(tube_cols[i])):
                 ball_x = x + (width_tube - ball_size) // 2  # Center ball in the test tube
-                ball_y = y + height_tube - (ball_size * (j + 1))  # Position balls from bottom to top
+                ball_y = (y + height_tube - ((ball_size+spacing) * (j + 1)))  
+                # print(tube_cols[i][j])
                 pg.draw.rect(self.screen, COLOR_CHOICES[tube_cols[i][j]], [ball_x, ball_y, ball_size, ball_size], 0, 100)
 
+     
         return tube_boxes
-    
-    
-    def calc_move(self,colors, selected_rect, destination):
-        color_on_top = 100
-        length = 1
-        color_to_move = 100
-        if len(colors[selected_rect]) > 0:
-            color_to_move = colors[selected_rect][-1]
-        if self.size > len(colors[destination]):
-            if len(colors[destination]) == 0:
-                color_on_top = color_to_move
-            else:
-                color_on_top = colors[destination][-1]
-        if color_on_top == color_to_move:
-            for i in range(length):
-                if len(colors[destination]) < self.size:
-                    if len(colors[selected_rect]) > 0:
-                        colors[destination].append(color_on_top)
-                        colors[selected_rect].pop(-1)
-        if colors != self.undo[len(self.undo)-1]:
-            self.undo.append(colors)
-            self.index+=1
-            print(self.undo)
-        return colors
-
-    def check_victory(self,colors):
-        won = True
-        for i in range(len(colors)):
-            if len(colors[i]) > 0:
-                if len(colors[i]) != self.size:
-                    won = False
-                else:
-                    main_color = colors[i][-1]
-                    for j in range(len(colors[i])):
-                        if colors[i][j] != main_color:
-                            won = False
-        return won
+     

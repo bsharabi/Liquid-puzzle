@@ -29,20 +29,25 @@ class Parser:
             
         self.read_file_path = os.path.join(input_dir, read_file_path)
         self.write_file_path = os.path.join(output_dir, write_file_path)
-
-    def reader(self) -> None:
+        
+    
+    def reader(self,read_file_path) -> None:
         """
         Opens the input CSV file and initializes the CSV reader and iterator.
         """
-        try:
-            self._read_file = open(self.read_file_path, mode='r', newline='')
-        except FileNotFoundError:
-            raise FileNotFoundError(f"Input file not found: {self.read_file_path}")
-        except Exception as e:
-            raise Exception(f"An error occurred while opening the file: {e}")
+        if self.read_file_path != os.path.join(input_dir, read_file_path):
+            self.read_file_path = os.path.join(input_dir, read_file_path)
+            if hasattr(self, '_read_file') and not self._read_file.closed:
+                self._read_file.close()
+            try:
+                self._read_file = open(self.read_file_path, mode='r', newline='')
+            except FileNotFoundError:
+                raise FileNotFoundError(f"Input file not found: {self.read_file_path}")
+            except Exception as e:
+                raise Exception(f"An error occurred while opening the file: {e}")
 
-        self._csv_reader = csv.DictReader(self._read_file)
-        self._iterator = iter(self._csv_reader)
+            self._csv_reader = csv.DictReader(self._read_file)
+            self._iterator = iter(self._csv_reader)
 
     def __del__(self):
         """
@@ -75,7 +80,8 @@ class Parser:
         if not self.hasNext():
             raise StopIteration("No more items")
 
-        item = self._next_item
+        item = self._next_item.copy()
+        
         del self._next_item
 
         # Convert CSV row to the required dictionary format
@@ -89,46 +95,33 @@ class Parser:
 
         return result
 
-    def init_dict(self, empty: int, full: int, size: int, colors: int,diffColor:int=None, num_step: int = None,time: str = None, init: list[list[int]]=None, steps: list[str] = None) -> dict:
-        """
-        Initializes a dictionary with the given parameters.
-
-        :param init: Initial configuration of the puzzle
-        :param empty: Number of empty tubes
-        :param full: Number of full tubes
-        :param size: Size of the puzzle
-        :param colors: Number of colors
-        :param num_step: Number of steps to solve the puzzle (optional)
-        :param steps: List of steps to solve the puzzle (optional)
-        :param time: Time to solve the puzzle (optional)
-        :return: A dictionary with the provided parameters
-        """
-        return {
-            
-            "empty": empty,
-            "full": full,
-            "size": size,
-            "colors": colors,
-            "diffColorPerTube":diffColor,
-            "stepToSolve": num_step,
-            "timeTaken": time,
-            "init": init,
-            "steps": steps,
-        }
-
-    def writer(self, **data: dict) -> None:
+    def writer(self, *arg,**data: dict) -> None:
         """
         Writes a dictionary to the output CSV file, appending a new line.
 
         :param data: A dictionary containing the data to write
         """
+        if len(arg)!=0 and self.write_file_path !=os.path.join(output_dir, arg[0]):
+            self.write_file_path=os.path.join(output_dir, arg[0])
+        
+        columns = ["empty", "full", "size", "colors", "tubesNumber", "stepToSolve", "timeTaken", "init", "steps"]
+       
+        # Ensure all required fields are present in the dictionary
+        for column in columns:
+            if column not in data["data"]:
+                data["data"][column] = None  # or some default value
+
         file_exists = os.path.isfile(self.write_file_path)
 
         with open(self.write_file_path, mode='a', newline='') as write_file:
-            writer = csv.DictWriter(write_file, fieldnames=list(data.keys()))
+            dictwriter_object = csv.DictWriter(write_file, fieldnames=columns)
+            
+            # Write header only if file does not exist
             if not file_exists:
-                writer.writeheader()
-            writer.writerow(data)
+                dictwriter_object.writeheader()
+            
+            # Write the data row
+            dictwriter_object.writerow(data["data"])
 
 
 if __name__ == "__main__":

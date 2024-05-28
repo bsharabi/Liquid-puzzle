@@ -6,8 +6,8 @@ from components.widgets import *
 from ui.Game import Game
 
 class Menu(GuiController):
+    
     def __init__(self):
-
         super().__init__()    
         display.set_caption("Liquid Pazzle - Menu")
         self.image = pg.image.load('data\Images\menu_background.jpg')
@@ -35,18 +35,30 @@ class Menu(GuiController):
             PALETTE["gray"], 
             PALETTE["white"])
         
-        self.start = False
-        self.options = False
-        self.quit = False
-
-    def handleClick(self,event):
+        self.resumeButton = Button(
+            Rectangle(((WIDTH-150)//2,((HEIGHT-32)//2)-50), (150, 32)),
+            Label("Resume", self.font),
+            PALETTE["purple"], 
+            PALETTE["gray"], 
+            PALETTE["white"])
         
-        if self.startButton.mouse_hover():
-            self.start = True
-        elif self.optionsButton.mouse_hover():
-            self.options = True
-        elif self.quitButton.mouse_hover():
-            self.quit = True
+    def handleClick(self,event):
+        if self.resumeButton.mouse_hover():
+            self.resume=True
+        else:
+            if self.startButton.mouse_hover():
+                self.next = True
+                self.prev_view=self.next_view
+                self.next_view= Game()
+            elif self.optionsButton.mouse_hover():
+                self.next = True
+                self.prev_view=self.next_view
+                self.next_view= options()
+            elif self.quitButton.mouse_hover():
+                self.next = True
+                self.prev_view=self.next_view
+                self.next_view= None
+        
 
     def handleButtonPress(self, event):
         pass
@@ -54,19 +66,16 @@ class Menu(GuiController):
     def handleWheel(self, event):
         pass
 
-    def shouldAdvance(self):   
-        if self.start or self.options or self.quit:
+    def shouldAdvance(self):  
+        
+        if self.next or self.resume:
             self.sound_effect["click"].play()
             return True
         return False
 
     def getNextViewController(self):
-        if self.start:
-             return Game()
-        elif self.options:
-            return options()
-        elif self.quit:
-            return None
+        self.next =False
+        return self.next_view
         
 
     def draw_screen(self):

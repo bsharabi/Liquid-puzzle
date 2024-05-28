@@ -14,22 +14,22 @@ class Start(GuiController):
         
         self.header_size = self.header.get_size()
         
-
         
     def handleClick(self,event):
         pass
 
     def handleButtonPress(self, event):
-        self.next_view = True
+        self.next = True
 
     def handleWheel(self, event):
         pass
 
     def shouldAdvance(self):   
-        return self.next_view
+        return self.next
 
     def getNextViewController(self):
-        return Menu()
+        self.next_view=Menu()
+        return self.next_view
 
     def draw_screen(self):
 

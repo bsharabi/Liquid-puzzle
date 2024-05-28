@@ -7,15 +7,15 @@ class Label:
         self.font = text_font
         self.active = True
 
-    def draw_label(self, surface: Surface, pos: tuple[float, float], color: Color = Color(70, 50, 111), center_text: bool = False) -> None:
+    def draw_label(self, surface: Surface, pos: tuple[float, float], color: Color = Color(70, 50, 111), center_text: bool = False,string:str="") -> None:
         if self.active:
             if center_text:
                 title_srf = self.font.render(
-                    self.text, True, color)
+                    f'{self.text}{string}', True, color)
                 title_rect = title_srf.get_rect(center=pos)
                 surface.blit(title_srf, title_rect)
             else:
-                surface.blit(self.font.render(self.text, True, color), pos)   
+                surface.blit(self.font.render(f'{self.text}{string}', True, color), pos)   
 
 class Rectangle:
 
@@ -55,13 +55,33 @@ class RectLabel:
         self.rect = rect_label
         self.text_color = text_color
 
-    def draw_rectLabel(self, surface):
-        self.rect.draw_rect(surface, self.color)
+    def draw_rectLabel(self, surface,bool:bool=False,border:bool=True,string:str=""):
+        self.rect.draw_rect(surface, self.color,border)
         self.rect.rect.topleft = self.rect.position
         self.label.draw_label(
-            surface, self.rect.rect.topleft, self.text_color, False)
+            surface, self.rect.rect.center, self.text_color, bool,string)
         pass
 
+class Timer:
+        def __init__(self,rect: Rectangle, header: Label,time: Label) -> None:
+            self.header = header
+            self.time = time
+            self.rect = rect
+            self.text_color_time_left = "red"
+            self.text_color = "white"
+            self.is_time_left=False
+
+        
+        def draw_scerrn(self, surface: Surface,time_left:int):
+            if time_left <10:
+                self.is_time_left = not self.is_time_left
+                
+            self.rect.draw_rect(surface, "black")
+            self.rect.rect.topleft = self.rect.position
+            self.header.draw_label(
+                surface, self.rect.rect.topleft, self.text_color, False)
+            self.time.draw_label(
+                surface, self.rect.rect.topleft, self.text_color_time_left, False)
 
 class Button:
 
@@ -96,6 +116,7 @@ class Button:
         self.rect_button.rect.topleft = self.rect_button.position
         self.text_button.draw_label(
             surface, self.rect_button.rect.center, self.text_color, center)
+
 
 class RectangleList:
 
