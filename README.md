@@ -21,3 +21,11 @@ The objective of Liquid Sort is to arrange the colored liquids in a specific ord
 ## Difficulty
 
 - The difficulty of Liquid Sort puzzles can vary, with some requiring simple sequences of pours and others demanding more intricate strategies and planning.
+
+
+## How to run
+```bash
+
+
+
+```
