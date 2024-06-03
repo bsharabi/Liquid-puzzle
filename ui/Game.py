@@ -14,7 +14,8 @@ class Game(GuiController):
         
         self.image =self.build_image(r'data\Images\game_bakground.jpg',(WIDTH, HEIGHT))  
         
-        self.algo.initialize(filePath= "output.csv")
+        # self.algo.initialize(filePath= "output.csv")
+        self.algo.initialize(full=14,size=14,colors=14,empty=6)
        
         self.select_box:int=0
         self.win:bool=False
@@ -111,7 +112,7 @@ class Game(GuiController):
                 self.algo.next_grid_df()
             except Exception as e:
                 print(e)
-                self.algo.initialize(full=8,size=8,colors=8,empty=2)
+                self.algo.initialize(full=10,size=10,colors=10,empty=2)
             self.win=False
         elif event.key == 1073741904:
             self.getPrevStep()
