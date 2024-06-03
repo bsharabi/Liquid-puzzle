@@ -104,7 +104,7 @@ class Parser:
         if len(arg)!=0 and self.write_file_path !=os.path.join(output_dir, arg[0]):
             self.write_file_path=os.path.join(output_dir, arg[0])
         
-        columns = ["empty", "full", "size", "colors", "tubesNumber", "stepToSolve", "timeTaken", "init", "steps"]
+        columns = list(data["data"].keys())
        
         # Ensure all required fields are present in the dictionary
         for column in columns:
