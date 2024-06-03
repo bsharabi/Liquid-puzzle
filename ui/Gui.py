@@ -11,7 +11,7 @@ class GUI_Panel:
         self.timer_event = pygame.USEREVENT + 1
         pg.time.set_timer(self.timer_event, 1000)
         pg.mixer.music.load(r"data\sound\Kevin_MacLeod_-_Canon_in_D_Major(chosic.com).mp3")
-        # pg.mixer.music.play(-1)
+        # pg.mixer.music.play(5)
         self.GuiController = Start()
     
     def __call__(self):
