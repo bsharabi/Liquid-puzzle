@@ -4,6 +4,8 @@ from collections import defaultdict
 import random as rd
 import time
 from logic.parser import Parser
+import heapq
+from copy import deepcopy
 
 def measure_time(func):
     def wrapper(*args, **kwargs):
@@ -90,18 +92,6 @@ class Algo(IAlgo):
         """
         return max(len(stack) for stack in grid)
 
-    def __canonical_string_conversion(self, grid: List[List[int]]) -> str:
-        """
-        Convert the grid to a canonical string representation.
-        
-        Args:
-            grid (List[List[int]]): The grid representing tubes with colored balls.
-        
-        Returns:
-            str: Canonical string representation of the grid.
-        """
-        return ";".join(",".join(map(str, stack)) for stack in grid)
-
     def __is_solved(self, grid: List[List[int]], stack_height: int) -> bool:
         """
         Check if the puzzle is solved.
@@ -119,30 +109,7 @@ class Algo(IAlgo):
             if len(stack) != stack_height or stack.count(stack[0]) != stack_height:
                 return False
         return True
-
-    def __is_valid_move(self, source_stack: List[int], destination_stack: List[int], height: int) -> bool:
-        """
-        Check if moving a ball from source stack to destination stack is valid.
-        
-        Args:
-            source_stack (List[int]): The source stack.
-            destination_stack (List[int]): The destination stack.
-            height (int): The maximum height of a stack.
-        
-        Returns:
-            bool: True if the move is valid, False otherwise.
-        """
-        if not source_stack or len(destination_stack) == height:
-            return False
-
-        if not destination_stack or source_stack[-1] == destination_stack[-1]:
-            if not destination_stack:
-                color_freqs = source_stack.count(source_stack[0])
-                if color_freqs == len(source_stack):
-                    return False
-            return True
-        return False
-
+    
     def __check_grid(self, grid: List[List[int]], empty: int) -> bool:
         """
         Check the validity of the grid.
@@ -177,53 +144,196 @@ class Algo(IAlgo):
 
         return True
 
-    def solve_puzzle(self, grid: List[List[int]], stack_height: int, visited: set, answer_mod: List[List[int]], memo: dict) -> bool:
-        """
-        Solve the liquid puzzle using backtracking.
-        
-        Args:
-            grid (List[List[int]]): The grid representing tubes with colored balls.
-            stack_height (int): The expected height of each stack.
-            visited (set): Set of visited grid states.
-            answer_mod (List[List[int]]): List of moves to solve the puzzle.
-            memo (dict): Memoization dictionary for storing already computed states.
-        
-        Returns:
-            bool: True if the puzzle is solved, False otherwise.
-        """
-        canonical_grid = self.__canonical_string_conversion(grid)
-        if canonical_grid in memo:
-            return memo[canonical_grid]
+    def solve_puzzle(self,init: list[list[int]], full: int) -> list[list[int]] | None:
+        def is_solved(grid: list[list[int]]) -> bool:
+            return all(len(stack) == full and stack.count(stack[0]) == full for stack in grid if stack)
 
-        if stack_height == -1:
-            stack_height = self.__get_stack_height(grid)
+        def canonical_string_conversion(grid: list[list[int]]) -> str:
+            return ";".join(",".join(map(str, stack)) for stack in grid)
 
-        if canonical_grid in visited:
+        def is_visit(grid: list[list[int]]) -> bool:
+            canonical_grid = canonical_string_conversion(grid)
+            if canonical_grid in visited:
+                return True
+            visited.add(canonical_grid)
             return False
 
-        visited.add(canonical_grid)
+        def get_color_sequence_number(tube: list[int], color: int) -> int:
+            sequence_cnt = 0
+            for tube_color in reversed(tube):
+                if tube_color != color:
+                    break
+                sequence_cnt += 1
+            return sequence_cnt
 
-        for i, source_stack in enumerate(grid):
-            for j, destination_stack in enumerate(grid):
-                if i != j and self.__is_valid_move(source_stack, destination_stack, stack_height):
-                    new_grid = [list(stack) for stack in grid]
-                    new_grid[j].append(new_grid[i].pop())
+        def get_sequences(color: int, grid: list[list[int]]) -> list[list[int]]:
+            steps = []
+            for index, tube in enumerate(grid):
+                if tube:
+                    sequence = get_color_sequence_number(tube, color)
+                    if sequence:
+                        steps.append([index, -1, sequence])
+            return steps
 
-                    if self.__is_solved(new_grid, stack_height):
-                        answer_mod.append([i, j, 1])
-                        memo[canonical_grid] = True
-                        return True
+        def get_head_tubes(grid: list[list[int]]) -> set[int]:
+            return {tube[-1] for tube in grid if tube and not (len(tube) == full and tube.count(tube[0]) == full)}
 
-                    if self.solve_puzzle(new_grid, stack_height, visited, answer_mod, memo):
-                        if answer_mod and answer_mod[-1][0] == i and answer_mod[-1][1] == j:
-                            answer_mod[-1][2] += 1
+        def calc_move(steps_list: list[list[int]], grid: list[list[int]], steps: list[list[int]]) -> bool:
+            child_grid = deepcopy(grid)
+            child_steps = deepcopy(steps)
+            cnt_to_transfer = sum(step[2] for step in steps_list)
+            dest = child_grid[steps_list[0][1]]
+            if len(dest) + cnt_to_transfer > full:
+                return False
+            for step in steps_list:
+                for _ in range(step[2]):
+                    src = child_grid[step[0]].pop()
+                    dest.append(src)
+                child_steps.append(step)
+            if not is_visit(child_grid):
+                heapq.heappush(priority_queue, (calculate_heuristic(child_grid), child_grid, child_steps))
+                return True
+            return False
+
+        def find_empty_tube(grid: list[list[int]]) -> int:
+            for i, tube in enumerate(grid):
+                if not tube:
+                    return i
+            return -1
+
+        def find_all_max_sequences_to_movement(grid: list[list[int]]) -> list[list[list[int]]]:
+            empty_tube_index = find_empty_tube(grid)
+            if empty_tube_index == -1:
+                return []
+            heads = get_head_tubes(grid)
+            max_sequences = 0
+            list_all_max_sequences_steps = []
+            for color in heads:
+                steps = get_sequences(color, grid)
+                if steps:
+                    calc_sequences = sum(step[2] for step in steps)
+                    if max_sequences > calc_sequences:
+                        continue
+                    if max_sequences < calc_sequences:
+                        max_sequences = calc_sequences
+                        list_all_max_sequences_steps.clear()
+                    list_all_max_sequences_steps.append(
+                        [list(map(lambda item: empty_tube_index if item == -1 else item, sublist)) for sublist in steps]
+                    )
+            return list_all_max_sequences_steps
+
+        def get_new_configuration_for_an_empty_tube(grid: list[list[int]], steps: list[list[int]]) -> bool:
+            steps_lists = find_all_max_sequences_to_movement(grid)
+            has_new_configuration = False
+            for steps_list in steps_lists:
+                if calc_move(steps_list, grid, steps):
+                    has_new_configuration = True
+            return has_new_configuration
+
+        def get_internal_arrangement(grid: list[list[int]], steps: list[list[int]]) -> bool:
+            def get_list_incomplete_tubes(grid: list[list[int]]) -> list[list[int]]:
+                transfer_lists = []
+                for index, tube in enumerate(grid):
+                    if tube and not (len(tube) == full and tube.count(tube[0]) == full) and len(tube) < full:
+                        color = tube[-1]
+                        transfer_lists.append([index, color, full - len(tube)])
+                return transfer_lists
+
+            def get_list_transfer_tubes(grid: list[list[int]]) -> list[list[list[int]]]:
+                heads = get_head_tubes(grid)
+                list_all_sequences_steps = []
+                for color in heads:
+                    steps = get_sequences(color, grid)
+                    if steps:
+                        list_all_sequences_steps.append(
+                            [list(map(lambda item: color if item == -1 else item, sublist)) for sublist in steps]
+                        )
+                return list_all_sequences_steps
+
+            incomplete_list = get_list_incomplete_tubes(grid)
+            transfer_lists = get_list_transfer_tubes(grid)
+
+            new_steps = []
+            has_new_configuration = False
+            for incomplete in incomplete_list:
+                dest, dest_color, space = incomplete
+                for transfer_list in transfer_lists:
+                    space_available = space
+                    new_steps.clear()
+                    for transfer in transfer_list:
+                        src, src_color, amount = transfer
+                        if dest_color != src_color or dest == src:
+                            continue
+                        if space_available >= amount:
+                            new_steps.append([src, dest, amount])
+                            space_available -= amount
+                            has_new_configuration = True
                         else:
-                            answer_mod.append([i, j, 1])
-                        memo[canonical_grid] = True
-                        return True
+                            if new_steps:
+                                calc_move(new_steps, grid, steps)
+                            space_available = space - amount
+                            new_steps.clear()
+                            new_steps.append([src, dest, amount])
+                    if new_steps:
+                        calc_move(new_steps, grid, steps)
+            return has_new_configuration
 
-        memo[canonical_grid] = False
-        return False
+        def calculate_heuristic(grid: list[list[int]]) -> int:
+            total_misplaced = 0
+            clustering_penalty = 0
+            empty_spaces = 0
+            potential_moves = 0
+
+            for tube in grid:
+                if not tube:
+                    empty_spaces += 1
+                    continue
+                
+                color = tube[0]
+                correct_sequence = True
+                for i in range(len(tube)):
+                    if tube[i] != color:
+                        correct_sequence = False
+                        total_misplaced += 1
+
+                if correct_sequence and len(tube) < full:
+                    clustering_penalty += (full - len(tube))
+                
+                # Count potential moves
+                if len(tube) > 0 and not correct_sequence:
+                    potential_moves += 1
+
+            # Weighting factors for each component of the heuristic
+            misplaced_weight = 5
+            clustering_weight = 3
+            empty_spaces_weight = 2
+            potential_moves_weight = 1
+
+            heuristic = (
+                misplaced_weight * total_misplaced +
+                clustering_weight * clustering_penalty -
+                empty_spaces_weight * empty_spaces +
+                potential_moves_weight * potential_moves
+            )
+
+            return heuristic
+
+
+        priority_queue = []
+        heapq.heappush(priority_queue, (calculate_heuristic(init), init, []))
+        visited = set()
+        is_visit(init)
+
+        while priority_queue:
+            _, grid, steps = heapq.heappop(priority_queue)
+            if is_solved(grid):
+                return steps
+            if get_internal_arrangement(grid, steps):
+                continue
+            if not get_new_configuration_for_an_empty_tube(grid, steps):
+                continue
+
+        return None
 
     def hasNext(self) -> bool:
         """
@@ -318,6 +428,7 @@ class Algo(IAlgo):
                     self.df["tubesNumber"]=self.df["size"]+self.df["empty"] 
             elif full is not None and size is not None and colors is not None and empty is not None and len(args) == 0:
                 self.__generate_tubes(full, size, colors, empty)
+                print("f")
                 
             elif len(args) == 1 and isinstance(args[0], bool) :
                 print(self.df["init"])
@@ -341,10 +452,9 @@ class Algo(IAlgo):
         Returns:
             List[List[int]]: List of moves to solve the puzzle.
         """
-        stacksNumber: List[List[int]] = self.df.get("init")
+        grid: List[List[int]] = self.df.get("init")
         
-        grid = [''.join(map(str, sublist)) for sublist in stacksNumber]
-        empty = sum(1 for sublist in stacksNumber if not sublist)
+        empty = sum(1 for sublist in grid if not sublist)
         stack_height = self.__get_stack_height(grid)
         print(grid,empty,stack_height)
         if self.mc==0:
@@ -356,26 +466,26 @@ class Algo(IAlgo):
                 print("Problem is already solved")
                 return False
 
-        visited = set()
-        answer_mod = []
-        memo = {}
-        
+      
         start_time = time.time()  # Start time
-        isSolve =self.solve_puzzle(grid, stack_height, visited, answer_mod, memo)
+        answer_mod =self.solve_puzzle(grid, stack_height)
         end_time = time.time()  # End time
         time_taken= end_time - start_time
+        isSolve= True if answer_mod else False
+        if not isSolve:
+            return False
         
-        answer_mod.reverse()
         for v in answer_mod:
             print(f"Move {v[0] } to {v[1] } {v[2]} times")
         
         self._iterator = iter(answer_mod)
-        
         if self.mc==0 and isSolve :
             self.df["stepToSolve"] = len(answer_mod)
             self.df["timeTaken"]=f'{time_taken:.2f}Sec'
             self.df["steps"] = answer_mod
-            print(self.df)
             self.parser.writer(data=self.df)
             
         return isSolve 
+
+
+
