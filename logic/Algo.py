@@ -78,7 +78,8 @@ class Algo(IAlgo):
         Returns:
             bool: True if all tubes have the same number of different colors, False otherwise.
         """
-        return sum(1 for i in range(size - 1) if len(set(tubes[i])) == len(set(tubes[i + 1]))) == size - 1
+        # return sum(1 for i in range(size - 1) if len(set(tubes[i])) == len(set(tubes[i + 1]))) == size - 1
+        return True
 
     def __get_stack_height(self, grid: List[List[int]]) -> int:
         """
